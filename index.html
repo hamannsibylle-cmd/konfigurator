@@ -3719,7 +3719,7 @@ document.addEventListener('DOMContentLoaded', function(){
 <div id="asset-mode-toolbar" style="display:flex;gap:.5rem;align-items:center;margin:10px 0;">
 <span style="font-weight:600;">Modus:</span>
 <button id="btn-mode-png" style="padding:.35rem .7rem;border:1px solid #555;border-radius:6px;cursor:pointer;" type="button">PNG</button>
-<div id="btn-mode-svg-wrapper" style="display:flex;flex-direction:column;align-items:center;line-height:1;"><span style="color:#c00;font-weight:700;font-size:1rem;margin-bottom:2px;">✕</span><button id="btn-mode-svg" style="padding:.35rem .7rem;border:1px solid #555;border-radius:6px;cursor:pointer;" type="button">SVG</button></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:2px;"><span style="color:#c00;font-weight:bold;line-height:1;">✕</span><button id="btn-mode-svg" style="padding:.35rem .7rem;border:1px solid #555;border-radius:6px;cursor:pointer;" type="button">SVG</button></div>
 <span id="mode-status" style="margin-left:.75rem;opacity:.8;">—</span>
 </div>
 <style id="asset-mode-mini-style">
@@ -22070,8 +22070,8 @@ body{ margin:0; background:#fff; }
   const ROOTS = ['#kartenbereich', '#abschluss-grid', '#druck100-panel', 'body']; // Reihenfolge wichtig
 
   function roots(){ return ROOTS.map(s=>document.querySelector(s)).filter(Boolean); }
-  function getMode(){ try { return (localStorage.getItem(MODE_KEY)||'PNG').toUpperCase(); } catch(_){ return 'PNG'; } }
-  function setMode(m){ try { localStorage.setItem(MODE_KEY, m); } catch(_){ } }
+  function getMode(){ return 'PNG'; }
+  function setMode(m){ try { localStorage.setItem(MODE_KEY, 'PNG'); } catch(_){ } }
 
   function isLinealEl(el){
     const idc = ((el && el.id)||'') + ' ' + ((el && el.className)||'');
@@ -22150,37 +22150,31 @@ body{ margin:0; background:#fff; }
   // Wrap vorhandenes setAssetMode
   const origSet = window.setAssetMode;
   window.setAssetMode = function(mode){
-    const m = 'PNG'; // GitHub/PNG-only: SVG-Modus deaktiviert
+    // PNG-Only: Modus wird immer auf PNG gesetzt, SVG ist deaktiviert
+    const m = 'PNG';
     if (typeof origSet === 'function'){ try { origSet(m); } catch(_){ } }
     setMode(m);
     apply(m);
   };
 
-  // Beim Laden anwenden
+  // Beim Laden immer PNG anwenden
   document.addEventListener('DOMContentLoaded', function(){
-    const m = getMode();
+    const m = 'PNG';
+    setMode(m);
     apply(m);
-    setTimeout(()=>apply(getMode()), 40);
+    setTimeout(()=>apply('PNG'), 40);
   }, {once:true});
 
-  // --- Vor dem Export (Druckdatei speichern) sicher auf SVG schalten ---
+  // --- Vor dem Export (Druckdatei speichern) kein SVG-Umschalten mehr ---
   (function hookExport(){
-    const btn = Array.from(document.querySelectorAll('button, a')).find(b => /druckdatei\s*speichern/i.test(b.textContent||''));
+    const btn = Array.from(document.querySelectorAll('button, a'...)).find(b => /druckdatei\s*speichern/i.test(b.textContent||''));
     if (!btn) return;
     const old = btn.onclick;
     btn.addEventListener('click', function(e){
-      try {
-        const prev = getMode();
-        window.setAssetMode('PNG'); // GitHub/PNG-only: kein SVG-Switch mehr
-        // danach alten Handler aufrufen (er erzeugt die Datei)
-        if (typeof old === 'function') old.call(btn, e);
-        // optional: nach kurzer Zeit zurück auf vorherigen Modus
-        setTimeout(()=>window.setAssetMode(prev), 300);
-      } catch(_){}
+      // PNG-Only: keine Umschaltung mehr, nur den ursprünglichen Handler ausführen
+      if (typeof old === 'function') old.call(btn, e);
     }, true);
-  })();
-})();
-</script>
+  })();</script>
 <!-- BEGIN: Präsentations-Export – final (direkt #abschluss-card-frame) -->
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
